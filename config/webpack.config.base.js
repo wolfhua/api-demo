@@ -1,6 +1,6 @@
 const path = require('path')
 const utils = require('./utils')
-const webpack = require('webpack')
+// const webpack = require('webpack')
 const nodeExternals = require('webpack-node-externals')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 

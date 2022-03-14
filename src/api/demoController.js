@@ -1,11 +1,11 @@
 class DemoControll {
-    constructor() {}
+//   constructor () {}
 
-    async demo(ctx) {
-        ctx.body = {
-            msg: 'body message !!!!'
-        }
+  async demo (ctx) {
+    ctx.body = {
+      msg: 'body message !!!!'
     }
+  }
 }
 
-export default new DemoControll();
+export default new DemoControll()
