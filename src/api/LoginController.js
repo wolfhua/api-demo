@@ -1,4 +1,4 @@
-import moment from 'moment'
+import moment from 'dayjs'
 import bcrypt from 'bcryptjs'
 import send from '../config/MailConfig'
 import jsonwebtoken from 'jsonwebtoken'
@@ -50,6 +50,12 @@ class LoginController {
     if (result) {
       // 验证账号密码是否正确
       const user = await User.findOne({ username: body.username })
+      const userObj = user.toJSON()
+      // 不返回字段
+      const noshow = ['username', 'password', 'roles']
+      noshow.map((item) => {
+        delete userObj[item]
+      })
       // 此处将空用户错误放到errorHandle中统一处理了，前端监听错误信息判断500错误
       // if (user !== null) {
       // console.log(await bcrypt.compare(body.password, user.password))
@@ -61,6 +67,7 @@ class LoginController {
         })
         ctx.body = {
           code: 200,
+          data: userObj,
           token: token
         }
       } else {
