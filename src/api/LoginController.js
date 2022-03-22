@@ -5,6 +5,7 @@ import jsonwebtoken from 'jsonwebtoken'
 import { JWT_SECRET } from '../config'
 import { checkCode } from '@/common/Utils'
 import User from '@/model/User'
+import SignRecord from '@/model/SignRecord'
 
 class LoginController {
 //   constructor () {}
@@ -62,9 +63,22 @@ class LoginController {
       if (await bcrypt.compare(body.password, user.password)) {
         // 登录成功，返回token
         // console.log('hello login')
-        const token = jsonwebtoken.sign({ _id: '1000215', sex: 'F' }, JWT_SECRET, {
+        const token = jsonwebtoken.sign({ _id: userObj._id, sex: 'F' }, JWT_SECRET, {
           expiresIn: '1d'
         })
+        // 判断用户是否签到
+        const signRecord = await SignRecord.findByUid(userObj._id)
+        if (signRecord !== null) {
+          if (moment().format('YYYY-MM-DD') === moment(signRecord.created).format('YYYY-MM-DD')) {
+            userObj.isSign = true
+          } else {
+            userObj.isSign = false
+          }
+          // 上次签到时间
+          userObj.lastSign = signRecord.created
+        } else {
+          userObj.isSign = false
+        }
         ctx.body = {
           code: 200,
           data: userObj,

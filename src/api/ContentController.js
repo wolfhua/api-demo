@@ -6,7 +6,7 @@ class ContentController {
   async getPostList (ctx) {
     // get, 如果是post请求，使用{ body } = ctx.request获取参数
     const body = ctx.request.query
-    console.log(body)
+    // console.log(body)
 
     const sort = body.sort ? body.sort : 'created'
     const page = body.page ? parseInt(body.page) : 0
@@ -27,7 +27,7 @@ class ContentController {
     if (typeof body.tag !== 'undefined' && body.tag !== '') {
       options.tags = { $elemMatch: { name: body.tag } }
     }
-    console.log(options)
+    // console.log(options)
 
     const result = await Post.getList(options, sort, page, limit)
     ctx.body = {
