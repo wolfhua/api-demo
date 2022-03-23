@@ -1,5 +1,5 @@
 import Router from 'koa-router'
-import demoController from '../api/demoController'
+import demoController from '../../api/demoController'
 
 const router = new Router()
 

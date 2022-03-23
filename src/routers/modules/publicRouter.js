@@ -1,5 +1,5 @@
 import Router from 'koa-router'
-import publicController from '../api/PublicController'
+import publicController from '@/api/PublicController'
 import ContentController from '@/api/ContentController'
 
 const router = new Router()
