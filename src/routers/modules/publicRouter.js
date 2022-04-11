@@ -1,6 +1,7 @@
 import Router from 'koa-router'
 import publicController from '@/api/PublicController'
 import ContentController from '@/api/ContentController'
+import userController from '@/api/UserController'
 
 const router = new Router()
 
@@ -15,6 +16,8 @@ router.get('/links', ContentController.getLinks)
 router.get('/tips', ContentController.getTips)
 // 获取本周热议
 router.get('/topWeek', ContentController.getTopWeek)
+// 确认修改邮箱
+router.get('/reset-email', userController.updateUsername)
 
 // module.exports = router
 export default router

@@ -1,5 +1,13 @@
 import Post from '@/model/Post'
 import Links from '@/model/Links'
+import fs from 'fs'
+import { v4 as uuidv4 } from 'uuid'
+import moment from 'dayjs'
+import { uploadPath } from '@/config/index'
+// 创建目录method1
+// import { dirExists } from '@/common/Utils'
+// 创建目录method2
+import mkdir from 'make-dir'
 
 class ContentController {
   // 获取发帖列表
@@ -57,13 +65,64 @@ class ContentController {
     }
   }
 
-  // 获取温馨通道
+  // 获取本周热议
   async getTopWeek (ctx) {
     const result = await Post.getTopWeek()
     ctx.body = {
       code: 200,
       data: result,
       msg: '温馨通道数据获取成功'
+    }
+  }
+
+  // 图片上传
+  async uploadImg (ctx) {
+    const file = ctx.request.files.file
+    // 图片名称、图片格式、存储的位置
+    const ext = file.name.split('.').pop()
+    const nowDate = moment().format('YYYYMMDD')
+    const dir = `${uploadPath}/${nowDate}`
+    console.log(ext)
+    console.log(dir)
+    // 判断路径是否存在，不存在则创建
+    // method1
+    // await dirExists(dir)
+    // method2
+    await mkdir(dir)
+    // 存储文件到指定路径
+    const picname = uuidv4()
+    // 文件保存的位置
+    const destPath = `${dir}/${picname}.${ext}`
+    // 读取文件流
+    const reader = fs.createReadStream(file.path)
+    // 写入文件流
+    const upStream = fs.createWriteStream(destPath)
+    // 返回前端的路径
+    const filePath = `/${nowDate}/${picname}.${ext}`
+    // method1
+    // reader.pipe(upStream)
+    // method2
+    let totalLength = 0
+    reader.on('data', (chunk) => {
+      totalLength += chunk.length
+      console.log(totalLength)
+      if (upStream.write(chunk) === false) {
+        // 如果写入失败，暂停
+        reader.pause()
+      }
+    })
+
+    reader.on('drain', () => {
+      reader.resume()
+    })
+
+    reader.on('end', () => {
+      upStream.end()
+    })
+    ctx.body = {
+      code: 200,
+      msg: '文件上传成功',
+      data: filePath
     }
   }
 }

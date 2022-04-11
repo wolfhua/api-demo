@@ -1,3 +1,5 @@
+import path from 'path'
+
 const DB_URL = 'mongodb://test:123456@148.70.52.182:27017/testdb'
 const REDIS_CONFIG = {
   host: '148.70.52.182',
@@ -7,8 +9,14 @@ const REDIS_CONFIG = {
 // jwt随机秘钥
 const JWT_SECRET = 'dC0^eQ8.kM8&sU3_nF7$fK4{aN2$sK3?xuomAqfe81ke!'
 
+const baseUrl = process.env.NODE_ENV === 'production' ? 'http://www.toimc.com' : 'http://localhost:8080'
+
+const uploadPath = process.env.NODE_ENV === 'production' ? 'app/public' : path.join(path.resolve(__dirname), '../../public')
+
 export {
   DB_URL,
   REDIS_CONFIG,
-  JWT_SECRET
+  JWT_SECRET,
+  baseUrl,
+  uploadPath
 }

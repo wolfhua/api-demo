@@ -5,8 +5,10 @@ import combineRouters from 'koa-combine-routers'
 // import loginRouter from './modules/loginRouter'
 // import userRouter from './modules/userRouter'
 
+// 加载目录中的Router中间件
 const moduleFiles = require.context('./modules', true, /\.js$/)
 // console.log(moduleFiles('routers/modules/demoRouter.js').default)
+// reduce 方法去拼接 koa-combine-routers所需的数据结构 Object[]
 const modules = moduleFiles.keys().reduce((items, path) => {
   const value = moduleFiles(path)
   items.push(value.default)

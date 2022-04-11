@@ -2,6 +2,11 @@ import SignRecord from '@/model/SignRecord'
 import { getJWTPayload } from '@/common/Utils'
 import User from '@/model/User'
 import moment from 'dayjs'
+import { v4 as uuidv4 } from 'uuid'
+import { setValue, getValue } from '@/config/RedisConfig'
+import { JWT_SECRET } from '@/config'
+import jwt from 'jsonwebtoken'
+import send from '@/config/MailConfig'
 
 class UserController {
   // 用户签到接口
@@ -105,6 +110,80 @@ class UserController {
       msg: '请求成功',
       ...result,
       lastSign: newRecord.created
+    }
+  }
+
+  // 更新用户基本信息接口
+  async updateUserInfo (ctx) {
+    const { body } = ctx.request
+    // 获取头部token数据并解密
+    const obj = getJWTPayload(ctx.header.authorization)
+    // 获取用户数据
+    const user = await User.findOne({ _id: obj._id })
+    let msg = ''
+    if (body.username && body.username !== user.username) {
+      // 说明用户更改了邮箱，发送reset验证邮件
+      // 判断用户的新邮箱是否被占用
+      const tmpUser = await User.findOne({ username: body.username })
+      if (tmpUser && tmpUser.password) {
+        ctx.body = {
+          code: 501,
+          msg: '邮箱已经被注册，请更换'
+        }
+        return
+      }
+      const key = uuidv4()
+      setValue(key, jwt.sign({ _id: obj._id }, JWT_SECRET, {
+        expiresIn: '30m'
+      }))
+      await send({
+        type: 'email',
+        data: {
+          key: key,
+          username: body.username
+        },
+        code: '',
+        expire: moment().add(30, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
+        email: user.username,
+        user: user.nickname
+      })
+      msg = '更新基本资料成功，账号修改需要邮件确认，请查收邮件！'
+    }
+    // 此接口不允许被需修改手机号，密码等敏感信息
+    const arr = ['username', 'mobile', 'password']
+    arr.map((item) => { delete body[item] })
+    console.log(body)
+    const result = await User.updateOne({ _id: obj._id }, body)
+    console.log(result)
+    if (result.modifiedCount === 1) {
+      ctx.body = {
+        code: 200,
+        msg: msg === '' ? '更新成功' : msg
+      }
+    } else {
+      ctx.body = {
+        code: 200,
+        msg: '更新失败'
+      }
+    }
+  }
+
+  // 更新用户名
+  async updateUsername (ctx) {
+    const body = ctx.query
+    if (body.key) {
+      const token = await getValue(body.key)
+      const obj = getJWTPayload('Bearer ' + token)
+      await User.updateOne(
+        { _id: obj._id },
+        {
+          username: body.username
+        }
+      )
+      ctx.body = {
+        code: 200,
+        msg: '更新用户名成功'
+      }
     }
   }
 }
