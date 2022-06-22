@@ -1,12 +1,14 @@
 import SignRecord from '@/model/SignRecord'
 import { getJWTPayload } from '@/common/Utils'
 import User from '@/model/User'
+import UserCollect from '../model/UserCollect'
 import moment from 'dayjs'
 import { v4 as uuidv4 } from 'uuid'
 import { setValue, getValue } from '@/config/RedisConfig'
 import { JWT_SECRET } from '@/config'
 import jwt from 'jsonwebtoken'
 import send from '@/config/MailConfig'
+import bcrypt from 'bcryptjs'
 
 class UserController {
   // 用户签到接口
@@ -152,9 +154,9 @@ class UserController {
     // 此接口不允许被需修改手机号，密码等敏感信息
     const arr = ['username', 'mobile', 'password']
     arr.map((item) => { delete body[item] })
-    console.log(body)
+    // console.log(body)
     const result = await User.updateOne({ _id: obj._id }, body)
-    console.log(result)
+    // console.log(result)
     if (result.modifiedCount === 1) {
       ctx.body = {
         code: 200,
@@ -162,7 +164,7 @@ class UserController {
       }
     } else {
       ctx.body = {
-        code: 200,
+        code: 400,
         msg: '更新失败'
       }
     }
@@ -183,6 +185,90 @@ class UserController {
       ctx.body = {
         code: 200,
         msg: '更新用户名成功'
+      }
+    }
+  }
+
+  // 修改密码
+  async changePassword (ctx) {
+    const { body } = ctx.request
+    const obj = await getJWTPayload(ctx.header.authorization)
+    // 获取用户数据
+    const user = await User.findOne({ _id: obj._id })
+    if (await bcrypt.compare(body.oldpwd, user.password)) {
+      const newpassword = await bcrypt.hash(body.newpwd, 5)
+      const result = await User.updateOne(
+        { _id: obj._id },
+        { $set: { password: newpassword } }
+      )
+      if (result.modifiedCount === 1) {
+        ctx.body = {
+          code: 200,
+          msg: '更新成功'
+        }
+      } else {
+        ctx.body = {
+          code: 404,
+          msg: '更新失败，请稍后重试!'
+        }
+      }
+    } else {
+      ctx.body = {
+        code: 404,
+        msg: '原密码错误，请查证！'
+      }
+    }
+  }
+
+  // 设置收藏
+  async setCollect (ctx) {
+    const params = ctx.query
+    const obj = await getJWTPayload(ctx.header.authorization)
+    if (parseInt(params.isFav)) {
+      // 说明用户已经收藏了帖子
+      await UserCollect.deleteOne({ uid: obj._id, tid: params.tid })
+      ctx.body = {
+        code: 200,
+        msg: '取消收藏成功'
+      }
+    } else {
+      const newCollect = new UserCollect({
+        uid: obj._id,
+        tid: params.tid,
+        title: params.title
+      })
+      const result = await newCollect.save()
+      if (result.uid) {
+        ctx.body = {
+          code: 200,
+          data: result,
+          msg: '收藏成功'
+        }
+      }
+    }
+  }
+
+  // 获取收藏列表
+  async getCollectByUid (ctx) {
+    const params = ctx.query
+    const obj = await getJWTPayload(ctx.header.authorization)
+    const result = await UserCollect.getListByUid(
+      obj._id,
+      params.page,
+      params.limit ? parseInt(params.limit) : 10
+    )
+    const total = await UserCollect.countByUid(obj._id)
+    if (result.length > 0) {
+      ctx.body = {
+        code: 200,
+        data: result,
+        total,
+        msg: '查询列表成功'
+      }
+    } else {
+      ctx.body = {
+        code: 500,
+        msg: '查询列表失败'
       }
     }
   }

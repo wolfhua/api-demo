@@ -11,12 +11,12 @@ const PostSchema = new Schema({
   created: Date,
   catalog: { type: String },
   fav: { type: String },
-  isEnd: { type: String },
-  reads: { type: Number },
-  answer: { type: Number },
-  status: { type: String },
-  isTop: { type: String },
-  sort: { type: String },
+  isEnd: { type: String, default: '0' },
+  reads: { type: Number, default: 0 },
+  answer: { type: Number, default: 0 },
+  status: { type: String, default: '0' },
+  isTop: { type: String, default: '0' },
+  sort: { type: String, default: '100' },
   tags: { type: Array }
 })
 
@@ -53,6 +53,21 @@ PostSchema.statics = {
       title: 1,
       answer: 1
     }).sort({ answer: -1 }).limit(15)
+  },
+  // 根据文章id获取数据，并过滤查询user指定字段
+  findByTid: function (tid) {
+    return this.findOne({ _id: tid }).populate({
+      path: 'uid',
+      select: 'nickname pic isVip _id'
+    })
+  },
+  // 获取某个用户的发帖记录列表
+  getListByUid: function (id, page, limit) {
+    return this.find({ uid: id }).skip(page * limit).limit(limit).sort({ created: -1 })
+  },
+  // 获取某个用户的发帖记录总数
+  countByUid: function (id) {
+    return this.find({ uid: id }).countDocuments()
   }
 }
 
