@@ -272,6 +272,32 @@ class UserController {
       }
     }
   }
+
+  async getBasicInfo (ctx) {
+    const params = ctx.query
+    const uid = params.uid || ctx._id
+    let user = await User.findByID(uid)
+    // 取得用户的签到记录 有没有 > today 0:00:00
+    if (user) {
+      user = user.toJSON()
+
+      const date = moment().format('YYYY-MM-DD')
+      const result = await SignRecord.findOne({
+        uid: uid,
+        created: { $gte: date + ' 00:00:00' }
+      })
+      if (result && result.uid) {
+        user.isSign = true
+      } else {
+        user.isSign = false
+      }
+    }
+    ctx.body = {
+      code: 200,
+      data: user,
+      msg: '查询成功！'
+    }
+  }
 }
 
 export default new UserController()
