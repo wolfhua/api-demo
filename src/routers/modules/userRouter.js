@@ -21,5 +21,9 @@ router.get('/collect', userController.getCollectByUid)
 router.get('/post', contentController.getPostByUid)
 // 删除发贴记录
 router.get('/deletePost', contentController.deletePostByUid)
+// 获取用户未读消息
+router.get('/getmsg', userController.getMsg)
+// 设置消息为已读
+router.get('/setmsg', userController.setMsg)
 
 export default router

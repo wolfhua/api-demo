@@ -96,7 +96,16 @@ class CommentsController {
     const newComment = new Comments(body)
     const obj = await getJWTPayload(ctx.header.authorization)
     newComment.cuid = obj._id
+    // 查询帖子是谁的，记录评论表
+    const post = await Post.findOne({ _id: body.tid })
+    newComment.uid = post.uid
     const comment = await newComment.save()
+    // 查询用户未读消息总数，并推送消息
+    const unreadNum = await Comments.getUnreadTotal(post.uid)
+    global.ws.send(post.uid, JSON.stringify({
+      event: 'message',
+      message: unreadNum
+    }))
     // 评论计数
     const updatePostresult = await Post.updateOne({ _id: body.tid }, { $inc: { answer: 1 } })
     if (comment._id && updatePostresult.modifiedCount === 1) {

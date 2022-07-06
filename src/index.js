@@ -22,7 +22,12 @@ import compose from 'koa-compose'
 import compress from 'koa-compress'
 import { JWT_SECRET } from './config'
 import errorHandle from './common/ErrorHandle'
+import WebSocketServer from './config/WebSocket'
 const app = new Koa()
+const ws = new WebSocketServer()
+ws.init()
+// 设置ws到全局变量，方便调用
+global.ws = ws
 
 const isDevMode = !((process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod'))
 

@@ -9,6 +9,7 @@ import { JWT_SECRET } from '@/config'
 import jwt from 'jsonwebtoken'
 import send from '@/config/MailConfig'
 import bcrypt from 'bcryptjs'
+import Comments from '@/model/Comments'
 
 class UserController {
   // 用户签到接口
@@ -296,6 +297,59 @@ class UserController {
       code: 200,
       data: user,
       msg: '查询成功！'
+    }
+  }
+
+  // 获取历史未读消息
+  async getMsg (ctx) {
+    const params = ctx.query
+    const page = params.page ? params.page : 0
+    const limit = params.limit ? parseInt(params.limit) : 10
+    // 方法一： 聚合查询 aggregate
+    // 方法二： 冗余用户信息
+    const obj = await getJWTPayload(ctx.header.authorization)
+    const result = await Comments.getMsgList(obj._id, page, limit)
+    const total = await Comments.getUnreadTotal(obj._id)
+
+    ctx.body = {
+      code: 200,
+      data: result,
+      total: total,
+      msg: '数据获取成功'
+    }
+  }
+
+  async setMsg (ctx) {
+    const params = ctx.query
+    if (params.id) {
+      // 更新一条
+      const result = await Comments.updateOne({ _id: params.id }, { isRead: '1' })
+      if (result.modifiedCount === 1) {
+        ctx.body = {
+          code: 200,
+          msg: '数据更新成功'
+        }
+      } else {
+        ctx.body = {
+          code: 401,
+          msg: '数据更新失败'
+        }
+      }
+    } else {
+      // 设置所有
+      const obj = await getJWTPayload(ctx.header.authorization)
+      const result = await Comments.updateMany({ uid: obj._id }, { isRead: '1' })
+      if (result.acknowledged && result.modifiedCount > 0) {
+        ctx.body = {
+          code: 200,
+          msg: '数据更新成功'
+        }
+      } else {
+        ctx.body = {
+          code: 401,
+          msg: '数据更新失败'
+        }
+      }
     }
   }
 }
