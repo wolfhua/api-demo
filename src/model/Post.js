@@ -42,6 +42,9 @@ PostSchema.statics = {
       .skip(page * limit).limit(limit)
       .populate({ path: 'uid', select: 'nickname isVip pic' })
   },
+  getTotal: function (options) {
+    return this.find(options).countDocuments()
+  },
   // 本周热议
   // 查询7天内回复最多的帖子，按回复数倒序，只查询title,answer字段
   getTopWeek: function () {

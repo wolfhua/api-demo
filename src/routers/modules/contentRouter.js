@@ -11,5 +11,9 @@ router.post('/upload', contentController.uploadImg)
 router.post('/add', contentController.addPost)
 // 更新帖子
 router.post('/update', contentController.updatePost)
+// 更新帖子（后台）
+router.post('/update-id', contentController.updatePostByTid)
+// 删除帖子
+router.get('/delete', contentController.deletePostByTid)
 
 export default router

@@ -71,7 +71,7 @@ class LoginController {
       const user = await User.findOne({ username: body.username })
       const userObj = user.toJSON()
       // 不返回字段
-      const noshow = ['username', 'password', 'roles']
+      const noshow = ['username', 'password']
       noshow.map((item) => {
         delete userObj[item]
       })

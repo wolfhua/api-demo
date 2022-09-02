@@ -276,7 +276,11 @@ class UserController {
 
   async getBasicInfo (ctx) {
     const params = ctx.query
-    const uid = params.uid || ctx._id
+    let uid = params.uid || ctx._id
+    if (!uid) {
+      const obj = await getJWTPayload(ctx.header.authorization)
+      uid = obj._id
+    }
     let user = await User.findByID(uid)
     // 取得用户的签到记录 有没有 > today 0:00:00
     if (user) {
@@ -349,6 +353,132 @@ class UserController {
           code: 401,
           msg: '数据更新失败'
         }
+      }
+    }
+  }
+
+  // 获取用户列表
+  async getUsersList (ctx) {
+    const body = ctx.request.query
+
+    const page = body.page ? parseInt(body.page) : 0
+    const limit = body.limit ? parseInt(body.limit) : 20
+    const sort = body.sort || 'created'
+
+    const options = {}
+    const result = await User.getList(options, sort, page, limit)
+    const total = await User.getTotal(options)
+
+    ctx.body = {
+      code: 200,
+      data: result,
+      total: total,
+      msg: '用户数据获取成功'
+    }
+  }
+
+  // 管理员删除用户
+  async deleteUserById (ctx) {
+    // const params = ctx.query
+    const { body } = ctx.request
+    // const user = await User.findOne({ _id: params.id })
+    // if (user) {
+    // const result = await User.deleteOne({ _id: params.id })
+    const result = await User.deleteMany({ _id: { $in: body.ids } })
+    console.log('deleteUserById -> result', result)
+    ctx.body = {
+      code: 200,
+      msg: '删除成功',
+      data: result
+    }
+    // } else {
+    //   ctx.body = {
+    //     code: 500,
+    //     msg: '没有找到这个老六'
+    //   }
+    // }
+  }
+
+  // 管理员更新用户
+  async updateUserById (ctx) {
+    const { body } = ctx.request
+
+    const user = await User.findOne({ _id: body._id })
+    // 1.校验用户是否存在 -> 用户名是否冲突
+    if (!user) {
+      ctx.body = {
+        code: 500,
+        msg: '用户不存在或者id信息错误！'
+      }
+      return
+    }
+
+    // 2.判断密码是否传递 -> 进行加密保存
+    if (body.password) {
+      body.password = await bcrypt.hash(body.password, 5)
+    }
+    const result = await User.updateOne({ _id: body._id }, body)
+    if (result.acknowledged === true && result.modifiedCount === 1) {
+      ctx.body = {
+        code: 200,
+        msg: '更新成功'
+      }
+    } else {
+      ctx.body = {
+        code: 500,
+        msg: '服务异常，更新失败'
+      }
+    }
+  }
+
+  async updateUserBatch (ctx) {
+    const { body } = ctx.request
+    const result = await User.updateMany(
+      { _id: { $in: body.ids } },
+      { $set: { ...body.settings } }
+    )
+    ctx.body = {
+      code: 200,
+      data: result
+    }
+  }
+
+  async checkUsername (ctx) {
+    const params = ctx.query
+    // 检查非用户本身以外的数据有没有用户名重复的
+    const user = await User.findOne({ username: params.username, _id: { $ne: params.id } })
+    // 默认是 1 - 校验通过， 0 - 校验失败
+    let result = 1
+    if (user) {
+      result = 0
+    }
+    ctx.body = {
+      code: 200,
+      data: result,
+      msg: '用户名已经存在，更新失败！'
+    }
+  }
+
+  async addUser (ctx) {
+    const { body } = ctx.request
+    body.password = await bcrypt.hash(body.password, 5)
+    const user = new User(body)
+    const result = await user.save()
+    const userObj = result.toJSON()
+    const arr = ['password']
+    arr.map(item => {
+      return delete userObj[item]
+    })
+    if (result) {
+      ctx.body = {
+        code: 200,
+        data: userObj,
+        msg: '添加用户成功'
+      }
+    } else {
+      ctx.body = {
+        code: 500,
+        msg: '服务接口异常'
       }
     }
   }

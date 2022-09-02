@@ -11,6 +11,7 @@ import mkdir from 'make-dir'
 import { checkCode, getJWTPayload, rename } from '@/common/Utils'
 import User from '@/model/User'
 import UserCollect from '@/model/UserCollect'
+import PostTags from '@/model/PostTags'
 
 class ContentController {
   // 获取发帖列表
@@ -21,7 +22,7 @@ class ContentController {
 
     const sort = body.sort ? body.sort : 'created'
     const page = body.page ? parseInt(body.page) : 0
-    const limit = body.limit ? parseInt(body.page) : 20
+    const limit = body.limit ? parseInt(body.limit) : 20
     const options = {}
     if (typeof body.catalog !== 'undefined' && body.catalog !== '') {
       options.catalog = body.catalog
@@ -41,9 +42,11 @@ class ContentController {
     // console.log(options)
 
     const result = await Post.getList(options, sort, page, limit)
+    const total = await Post.getTotal(options)
     ctx.body = {
       code: 200,
       data: result,
+      total: total,
       msg: '文章数据获取成功'
     }
   }
@@ -217,6 +220,24 @@ class ContentController {
     }
   }
 
+  // 后台更新帖子
+  async updatePostByTid (ctx) {
+    const { body } = ctx.request
+    const up = await Post.updateOne({ _id: body._id }, body)
+    if (up.modifiedCount === 1) {
+      ctx.body = {
+        code: 200,
+        msg: '更新成功',
+        data: up
+      }
+    } else {
+      ctx.body = {
+        code: 500,
+        msg: '更新失败，请检查人品!'
+      }
+    }
+  }
+
   // 获取帖子详情
   async getPostDetail (ctx) {
     const params = ctx.query
@@ -317,7 +338,8 @@ class ContentController {
     const obj = await getJWTPayload(ctx.header.authorization)
     const post = await Post.findOne({ uid: obj._id, _id: params.tid })
     if (post.id === params.tid && post.isEnd === '0') {
-      // await ContentController.prototype.deletePost(ctx)
+      // 可以直接调用下面根据tid删除帖子的方法，但是不能直接用this.deletePostByTid调用，因为到处的是class的实例
+      // await ContentController.prototype.deletePostByTid(ctx)
       const result = await Post.deleteOne({ _id: params.tid })
       if (result.deletedCount === 1) {
         ctx.body = {
@@ -335,6 +357,72 @@ class ContentController {
         code: 500,
         msg: '删除失败，无权限！'
       }
+    }
+  }
+
+  async deletePostByTid (ctx) {
+    const params = ctx.query
+    const result = await Post.deleteOne({ _id: params.tid })
+    if (result.deletedCount === 1) {
+      ctx.body = {
+        code: 200,
+        msg: '删除成功'
+      }
+    } else {
+      ctx.body = {
+        code: 500,
+        msg: '执行删除失败！'
+      }
+    }
+  }
+
+  // 添加标签
+  async addTag (ctx) {
+    const { body } = ctx.request
+    const tag = new PostTags(body)
+    await tag.save()
+    ctx.body = {
+      code: 200,
+      msg: '标签保存成功'
+    }
+  }
+
+  // 获取标签
+  async getTags (ctx) {
+    const params = ctx.query
+    const page = params.page ? parseInt(params.page) : 0
+    const limit = params.limit ? parseInt(params.limit) : 10
+    const result = await PostTags.getList({}, page, limit)
+    const total = await PostTags.countList({})
+    ctx.body = {
+      code: 200,
+      data: result,
+      total,
+      msg: '查询tags成功！'
+    }
+  }
+
+  // 删除标签
+  async removeTag (ctx) {
+    const params = ctx.query
+    const result = await PostTags.deleteOne({ id: params.ptid })
+
+    ctx.body = {
+      code: 200,
+      data: result,
+      msg: '删除成功'
+    }
+  }
+
+  // 删除标签
+  async updateTag (ctx) {
+    const { body } = ctx.request
+    const result = await PostTags.updateOne({ _id: body._id }, body)
+
+    ctx.body = {
+      code: 200,
+      data: result,
+      msg: '更新成功'
     }
   }
 }

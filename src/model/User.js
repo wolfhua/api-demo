@@ -48,6 +48,23 @@ UserSchema.statics = {
       username: 0,
       mobile: 0
     })
+  },
+  /**
+   * 获取用户列表数据
+   * @param {Object} options 筛选条件
+   * @param {String} sort 排序方式
+   * @param {Number} page 分页页数
+   * @param {Number} limit 每页条数
+   * @returns
+   */
+  getList: function (options, sort, page, limit) {
+    return this.find(options, {
+      password: 0 // 字段值给0，不查询字段
+    }).sort({ [sort]: -1 })
+      .skip(page * limit).limit(limit)
+  },
+  getTotal: function (options) {
+    return this.find(options).countDocuments()
   }
 }
 
