@@ -20,6 +20,40 @@ const UserSchema = new Schema({
   count: { type: Number, default: 0 }
 })
 
+const condition = (options) => {
+  let query = {}
+  if (typeof options.search !== 'undefined') {
+    if (typeof options.search === 'string' && options.search.trim() !== '') {
+      if (['nickname', 'username'].includes(options.item)) {
+        // 模糊匹配
+        query[options.item] = { $regex: new RegExp(options.search) }
+        // =》 { name: { $regex: /admin/ } } => mysql like %admin%
+      } else {
+        // radio
+        // 判断字段值是否是 isVip isVip字段值大于1的时候，代表具体的vip等级
+        if (options.item === 'isVip') {
+          if (options.search === '0') {
+            query[options.item] = options.search
+          } else {
+            query[options.item] = { $gte: options.search }
+          }
+        } else {
+          query[options.item] = options.search
+        }
+      }
+    }
+    if (options.item === 'roles') {
+      query = { roles: { $in: options.search } }
+    }
+    if (options.item === 'created') {
+      const start = options.search[0]
+      const end = options.search[1]
+      query = { created: { $gte: new Date(start), $lt: new Date(end) } }
+    }
+  }
+  return query
+}
+
 // 保存前执行
 UserSchema.pre('save', function (next) {
   this.created = moment().format('YYYY-MM-DD HH:mm:ss')
@@ -58,13 +92,15 @@ UserSchema.statics = {
    * @returns
    */
   getList: function (options, sort, page, limit) {
-    return this.find(options, {
+    const query = condition(options)
+    return this.find(query, {
       password: 0 // 字段值给0，不查询字段
     }).sort({ [sort]: -1 })
       .skip(page * limit).limit(limit)
   },
   getTotal: function (options) {
-    return this.find(options).countDocuments()
+    const query = condition(options)
+    return this.find(query).countDocuments()
   }
 }
 

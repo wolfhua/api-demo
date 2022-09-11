@@ -11,6 +11,8 @@ router.prefix('/public')
 router.get('/getCaptcha', publicController.getCaptcha)
 // 获取文章列表
 router.get('/list', contentController.getPostList)
+// 获取文章列表
+router.get('/list-admin', contentController.postListAdmin)
 // 获取友链
 router.get('/links', contentController.getLinks)
 // 获取温馨通道

@@ -12,6 +12,7 @@ import { checkCode, getJWTPayload, rename } from '@/common/Utils'
 import User from '@/model/User'
 import UserCollect from '@/model/UserCollect'
 import PostTags from '@/model/PostTags'
+import qs from 'qs'
 
 class ContentController {
   // 获取发帖列表
@@ -48,6 +49,48 @@ class ContentController {
       data: result,
       total: total,
       msg: '文章数据获取成功'
+    }
+  }
+
+  // 获取发帖列表(后台管理)
+  async postListAdmin (ctx) {
+    const body = qs.parse(ctx.query)
+    const sort = body.sort ? body.sort : 'created'
+    const page = body.page ? parseInt(body.page) : 0
+    const limit = body.limit ? parseInt(body.limit) : 20
+    const options = {}
+
+    if (body.title) {
+      options.title = { $regex: body.title }
+    }
+    if (body.catalog && body.catalog.length > 0) {
+      options.catalog = { $in: body.catalog }
+    }
+    if (body.isTop) {
+      options.isTop = body.isTop
+    }
+    if (body.isEnd) {
+      options.isEnd = body.isEnd
+    }
+    if (body.status) {
+      options.status = body.status
+    }
+    if (typeof body.tag !== 'undefined' && body.tag !== '') {
+      options.tags = { $elemMatch: { name: body.tag } }
+    }
+    if (body.created) {
+      const start = body.created[0]
+      const end = body.created[1]
+      options.created = { $gte: new Date(start), $lt: new Date(end) }
+    }
+    const result = await Post.getList(options, sort, page, limit)
+    const total = await Post.getTotal(options)
+
+    ctx.body = {
+      code: 200,
+      data: result,
+      msg: '获取文章列表成功',
+      total: total
     }
   }
 

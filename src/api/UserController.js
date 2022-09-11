@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken'
 import send from '@/config/MailConfig'
 import bcrypt from 'bcryptjs'
 import Comments from '@/model/Comments'
+import qs from 'qs'
 
 class UserController {
   // 用户签到接口
@@ -359,13 +360,14 @@ class UserController {
 
   // 获取用户列表
   async getUsersList (ctx) {
-    const body = ctx.request.query
+    let body = ctx.query
+    body = qs.parse(body)
 
     const page = body.page ? parseInt(body.page) : 0
     const limit = body.limit ? parseInt(body.limit) : 20
     const sort = body.sort || 'created'
 
-    const options = {}
+    const options = body.option || {}
     const result = await User.getList(options, sort, page, limit)
     const total = await User.getTotal(options)
 
