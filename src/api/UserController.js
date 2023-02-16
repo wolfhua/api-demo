@@ -451,13 +451,13 @@ class UserController {
     const user = await User.findOne({ username: params.username, _id: { $ne: params.id } })
     // 默认是 1 - 校验通过， 0 - 校验失败
     let result = 1
-    if (user) {
+    if (user && user._id) {
       result = 0
     }
     ctx.body = {
       code: 200,
       data: result,
-      msg: '用户名已经存在，更新失败！'
+      msg: result === 1 ? '用户名校验通过无重复' : '用户名已经存在，更新失败！'
     }
   }
 

@@ -66,9 +66,65 @@ const rename = (obj, key, newKey) => {
   return obj
 }
 
+const sortObj = (arr, property) => {
+  return arr.sort((m, n) => m[property] - n[property])
+}
+
+// 获取菜单数据 flag -> 是否超级管理员
+const getMenuData = (tree, rights, flag) => {
+  const arr = []
+  for (let i = 0; i < tree.length; i++) {
+    const item = tree[i]
+    // _id 包含在menus中
+    // 结构进行改造，删除opertaions
+    if (rights.includes(item._id + '') || flag) {
+      if (item.type === 'menu') {
+        arr.push({
+          _id: item._id,
+          path: item.path,
+          meta: {
+            title: item.title,
+            hideInBread: item.hideInBread,
+            hideInMenu: item.hideInMenu,
+            notCache: item.notCache,
+            icon: item.icon
+          },
+          component: item.component,
+          children: getMenuData(item.children, rights, flag)
+        })
+      } else if (item.type === 'link') {
+        arr.push({
+          _id: item._id,
+          path: item.path,
+          meta: {
+            title: item.title,
+            icon: item.icon,
+            href: item.link
+          }
+        })
+      }
+    }
+  }
+
+  return sortObj(arr, 'sort')
+}
+
+const sortMenus = (tree) => {
+  tree = sortObj(tree, 'sort')
+  if (tree.children && tree.children.length > 0) {
+    tree.children = sortMenus(tree.children, 'sort')
+  }
+  if (tree.operations && tree.operations.length > 0) {
+    tree.operations = sortMenus(tree.operations, 'sort')
+  }
+  return tree
+}
+
 export {
   checkCode,
   getJWTPayload,
   dirExists,
-  rename
+  rename,
+  getMenuData,
+  sortMenus
 }

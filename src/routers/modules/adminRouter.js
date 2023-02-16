@@ -46,5 +46,17 @@ router.post('/delete-menu', adminController.deleteMenu)
 router.post('/update-menu', adminController.updateMenu)
 // 查询菜单
 router.get('/get-menu', adminController.getMenu)
+// 添加角色
+router.post('/add-role', adminController.addRole)
+// 删除角色
+router.post('/delete-role', adminController.deleteRole)
+// 修改角色
+router.post('/update-role', adminController.updateRole)
+// 查询角色
+router.get('/get-roles', adminController.getRoles)
+// 查询角色名称列表
+router.get('/get-roles-names', adminController.getRolesNames)
+// 获取用户 -> 角色 -> 动态菜单信息
+router.get('/get-routes', adminController.getRoutes)
 
 export default router
