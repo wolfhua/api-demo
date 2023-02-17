@@ -77,6 +77,7 @@ const getMenuData = (tree, rights, flag) => {
     const item = tree[i]
     // _id 包含在menus中
     // 结构进行改造，删除opertaions
+    // item._id 是一个Object 加上引号转化为字符串
     if (rights.includes(item._id + '') || flag) {
       if (item.type === 'menu') {
         arr.push({
@@ -120,11 +121,41 @@ const sortMenus = (tree) => {
   return tree
 }
 
+const flatten = (arr) => {
+  while (arr.some((item) => Array.isArray(item))) {
+    arr = [].concat(...arr)
+  }
+  return arr
+}
+
+const getRights = (tree, menus, flag) => {
+  const arr = []
+  if (flag) {
+    arr.push('all')
+  } else {
+    for (const item of tree) {
+      if (item.operations && item.operations.length > 0) {
+        for (const op of item.operations) {
+          if (menus.includes(op._id + '')) {
+            arr.push(op.path)
+          }
+        }
+      } else if (item.children && item.children.length > 0) {
+        arr.push(getRights(item.children, menus))
+      }
+    }
+  }
+
+  return flatten(arr)
+}
+
 export {
   checkCode,
   getJWTPayload,
   dirExists,
   rename,
   getMenuData,
-  sortMenus
+  sortMenus,
+  flatten,
+  getRights
 }

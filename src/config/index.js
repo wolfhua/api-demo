@@ -13,10 +13,13 @@ const baseUrl = process.env.NODE_ENV === 'production' ? 'http://www.toimc.com' :
 
 const uploadPath = process.env.NODE_ENV === 'production' ? 'app/public' : path.join(path.resolve(__dirname), '../../public')
 
+const publicPath = [/^\/public/, /^\/login/, /^\/comments/, /^\/user/]
+
 export {
   DB_URL,
   REDIS_CONFIG,
   JWT_SECRET,
   baseUrl,
-  uploadPath
+  uploadPath,
+  publicPath
 }

@@ -1,7 +1,14 @@
 import Menu from '@/model/Menus'
 import Roles from '@/model/Roles'
 import User from '@/model/User'
-import { getMenuData, sortMenus } from '@/common/Utils'
+import Post from '@/model/Post'
+import Comments from '@/model/Comments'
+import SignRecord from '@/model/SignRecord'
+import { getMenuData, sortMenus, getRights } from '@/common/Utils'
+import moment from 'dayjs'
+// 加载星期插件
+const weekday = require('dayjs/plugin/weekday')
+moment.extend(weekday)
 class AdminController {
   async getMenu (ctx) {
     const result = await Menu.find({})
@@ -123,6 +130,147 @@ class AdminController {
     ctx.body = {
       code: 200,
       data: routes
+    }
+  }
+
+  // 获取资源权限
+  async getOperations (ctx) {
+    const user = await User.findOne({ _id: ctx._id }, { roles: 1 })
+    const { roles } = user
+    // 判断是否有超级管理员权限
+    let flag = false
+    if (roles.includes('super_admin')) {
+      flag = true
+    }
+    let menus = []
+    for (let i = 0; i < roles.length; i++) {
+      const role = roles[i]
+      const rights = await Roles.findOne({ role }, { menu: 1 })
+      menus = menus.concat(rights.menu)
+    }
+    menus = Array.from(new Set(menus))
+    // 3. menus -> 可以访问的菜单数据
+    const treeData = await Menu.find({})
+    const operations = getRights(treeData, menus, flag)
+    return operations
+  }
+
+  // 获取统计数据
+  async getStats (ctx) {
+    let result = {}
+    // 当天零点
+    const nowZero = new Date().setHours(0, 0, 0, 0)
+    // 1. 顶部的card
+    const inforCardData = []
+    // 今天的时间
+    const time = moment().format('YYYY-MM-DD 00:00:00')
+    // 今日新增用户
+    const userNewCount = await User.find({ created: { $gte: time } }).countDocuments()
+    // 发帖累积
+    const postsCount = await Post.find({}).countDocuments()
+    // 今日新增评论
+    const commentsNewCount = await Comments.find({ created: { $gte: time } }).countDocuments()
+    // 本周开始时间
+    const starttime = moment(nowZero).weekday(1).format()
+    // 本周结束时间
+    const endtime = moment(nowZero).weekday(8).format()
+    // 周采纳统计
+    const weekEndCount = await Comments.find({ created: { $gte: starttime, $lte: endtime }, isBest: '1' }).countDocuments()
+    // 周签到统计
+    const signWeekCount = await SignRecord.find({ created: { $gte: starttime, $lte: endtime } }).countDocuments()
+    // 周发帖数量
+    const postWeekCount = await Post.find({ created: { $gte: starttime, $lte: endtime } }).countDocuments()
+    inforCardData.push(userNewCount)
+    inforCardData.push(postsCount)
+    inforCardData.push(commentsNewCount)
+    inforCardData.push(weekEndCount)
+    inforCardData.push(signWeekCount)
+    inforCardData.push(postWeekCount)
+    // 2. 左侧的饼图数据
+    // 通过对catalog进行分组求和
+    const postsCatalogCount = await Post.aggregate([
+      { $group: { _id: '$catalog', count: { $sum: 1 } } }
+    ])
+    const pieData = {}
+    postsCatalogCount.forEach((item) => {
+      pieData[item._id] = item.count
+    })
+    // 3. 本周的右侧统计数据
+    // 3.1 计算6个月前的时间： 1号 00:00:00
+    // 3.2 查询数据库中对应时间内的数据 $gte
+    // 3.3 group组合 -> sum -> sort排序
+    const startMonth = moment(nowZero).subtract(5, 'M').date(1).format()
+    const endMonth = moment(nowZero).add(1, 'M').date(1).format()
+    // aggregate 的 $match 用于过滤文档,接受一个指定查询条件的文档
+    // project 这里是格式化字段，取名month
+    let monthData = await Post.aggregate([
+      { $match: { created: { $gte: new Date(startMonth), $lt: new Date(endMonth) } } },
+      { $project: { month: { $dateToString: { format: '%Y-%m', date: '$created' } } } },
+      { $group: { _id: '$month', count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ])
+    // 利用reduce偷懒，将数据变成key->value对象
+    // console.log(monthData)
+    monthData = monthData.reduce((obj, item) => {
+      // console.log('🚀 ~ file: AdminController.js:214 ~ AdminController ~ monthData=monthData.reduce ~ item', item)
+      // console.log(obj)
+      return {
+        ...obj,
+        [item._id]: item.count
+      }
+    }, {})
+    // 4. 底部的数据
+    const startDay = moment().subtract(7, 'day').format()
+    const _aggregate = async (model) => {
+      let result = await model.aggregate([
+        { $match: { created: { $gte: new Date(startDay) } } },
+        { $project: { month: { $dateToString: { format: '%Y-%m-%d', date: '$created' } } } },
+        { $group: { _id: '$month', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ])
+      result = result.reduce((obj, item) => {
+        return {
+          ...obj,
+          [item._id]: item.count
+        }
+      }, {})
+      return result
+    }
+    const userWeekData = await _aggregate(User) // -> { 2019-10-01: 1}
+    const signWeekData = await _aggregate(SignRecord)
+    const postWeekData = await _aggregate(Post)
+    const commentsWeekData = await _aggregate(Comments)
+    // {user: [1,2,3,4,0,0,0]}
+    const dataArr = []
+    for (let i = 0; i <= 6; i++) {
+      dataArr.push(moment().subtract(6 - i, 'day').format('YYYY-MM-DD'))
+    }
+    const addData = (obj) => {
+      const arr = []
+      dataArr.forEach((item) => {
+        if (obj[item]) {
+          arr.push(obj[item])
+        } else {
+          arr.push(0)
+        }
+      })
+      return arr
+    }
+    const weekData = {
+      user: addData(userWeekData),
+      sign: addData(signWeekData),
+      post: addData(postWeekData),
+      comments: addData(commentsWeekData)
+    }
+    result = {
+      inforCardData,
+      pieData,
+      monthData,
+      weekData
+    }
+    ctx.body = {
+      code: 200,
+      data: result
     }
   }
 }
