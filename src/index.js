@@ -24,6 +24,9 @@ import { JWT_SECRET } from './config'
 import errorHandle from './common/ErrorHandle'
 import WebSocketServer from './config/WebSocket'
 import auth from '@/common/Auth'
+// import logger from 'koa-logger'
+import log4js from '@/config/Log4j'
+import monitorLogger from '@/common/Logger'
 const app = new Koa()
 const ws = new WebSocketServer()
 ws.init()
@@ -38,6 +41,7 @@ const jwt = JWT({ secret: JWT_SECRET }).unless({ path: [/^\/public/, /\/login/] 
  * 使用koa-compose 集合中间件
  */
 const middleware = compose([
+  monitorLogger,
   // 配置允许文件上传
   koaBody({
     multipart: true,
@@ -53,9 +57,14 @@ const middleware = compose([
   cors(),
   jsonutil({ pretty: false, param: 'pretty' }),
   helmet(),
-  errorHandle,
   jwt,
-  auth
+  auth,
+  errorHandle, // 特别注意中间件顺序，errorHandle中有使用用户信息，所以放在auth后
+  isDevMode ? log4js.koaLogger(log4js.getLogger('http'), {
+    level: 'auto'
+  }) : log4js.koaLogger(log4js.getLogger('access'), {
+    level: 'auto'
+  })
 ])
 
 if (!isDevMode) {
@@ -70,4 +79,6 @@ app.use(router())
 
 app.listen(port, () => {
   console.log(`The server is running at: ${port}`)
+  const logger = log4js.getLogger('out')
+  logger.info('app is runing at ' + 3000)
 })

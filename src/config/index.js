@@ -15,11 +15,15 @@ const uploadPath = process.env.NODE_ENV === 'production' ? 'app/public' : path.j
 
 const publicPath = [/^\/public/, /^\/login/, /^\/comments/, /^\/user/]
 
+// 判断开发环境
+const isDevMode = process.env.NODE_ENV !== 'production'
+
 export {
   DB_URL,
   REDIS_CONFIG,
   JWT_SECRET,
   baseUrl,
   uploadPath,
-  publicPath
+  publicPath,
+  isDevMode
 }
