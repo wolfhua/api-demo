@@ -17,6 +17,7 @@ const publicPath = [/^\/public/, /^\/login/, /^\/content/, /^\/user/]
 
 // 判断开发环境
 const isDevMode = process.env.NODE_ENV !== 'production'
+const wsPort = isDevMode ? 3002 : 3002
 
 export {
   DB_URL,
@@ -25,5 +26,6 @@ export {
   baseUrl,
   uploadPath,
   publicPath,
-  isDevMode
+  isDevMode,
+  wsPort
 }

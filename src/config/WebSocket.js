@@ -1,11 +1,12 @@
 import WebSocket from 'ws'
 import { getJWTPayload } from '@/common/Utils'
 import Comments from '@/model/Comments'
+import { wsPort } from './index'
 
 class WebSocketServer {
   constructor (config = {}) {
     const defaultConfig = {
-      port: 3002,
+      port: wsPort,
       // 是否鉴权
       isAuth: true,
       // 心跳检测时长

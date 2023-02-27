@@ -13,7 +13,7 @@ RUN yarn install --registry=https://registry.npm.taobao.org
 RUN npm run build
 
 
-EXPOSE 12005
+EXPOSE 12005 3002
 
 VOLUME ["app/public"]
 
