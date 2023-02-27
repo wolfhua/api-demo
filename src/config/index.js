@@ -13,7 +13,7 @@ const baseUrl = process.env.NODE_ENV === 'production' ? 'http://www.toimc.com' :
 
 const uploadPath = process.env.NODE_ENV === 'production' ? 'app/public' : path.join(path.resolve(__dirname), '../../public')
 
-const publicPath = [/^\/public/, /^\/login/, /^\/comments/, /^\/user/]
+const publicPath = [/^\/public/, /^\/login/, /^\/content/, /^\/user/]
 
 // 判断开发环境
 const isDevMode = process.env.NODE_ENV !== 'production'
